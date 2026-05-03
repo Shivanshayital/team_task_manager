@@ -11,8 +11,8 @@ router.use(authMiddleware);
 // Admin only - create task
 router.post('/', roleMiddleware('admin'), taskController.createTask);
 
-// Get all tasks
-router.get('/', taskController.getAllTasks);
+// Get all tasks (Admin only)
+router.get('/', roleMiddleware('admin'), taskController.getAllTasks);
 
 // Get user tasks
 router.get('/my-tasks', taskController.getUserTasks);

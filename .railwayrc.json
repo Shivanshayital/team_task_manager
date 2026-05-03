@@ -1,4 +1,4 @@
 {
-  "startCommand": "npm start"
+  "startCommand": "node server/server.js"
 }
 

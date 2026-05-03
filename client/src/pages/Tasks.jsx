@@ -25,6 +25,7 @@ import {
 const Tasks = () => {
   const [tasks, setTasks] = useState([]);
   const [projects, setProjects] = useState([]);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [formLoading, setFormLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -36,6 +37,7 @@ const Tasks = () => {
     status: 'pending',
     priority: 'medium',
     projectId: '',
+    assignedTo: '',
     deadline: '',
   });
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -44,12 +46,17 @@ const Tasks = () => {
   useEffect(() => {
     fetchTasks();
     fetchProjects();
+    if (user.role === 'admin') {
+      fetchUsers();
+    }
   }, []);
 
   const fetchTasks = async () => {
     try {
       setLoading(true);
-      const response = await taskAPI.getUserTasks();
+      const response = user.role === 'admin' 
+        ? await taskAPI.getAllTasks()
+        : await taskAPI.getUserTasks();
       setTasks(response.data.tasks);
     } catch (err) {
       addToast('Failed to load tasks', 'error');
@@ -65,6 +72,15 @@ const Tasks = () => {
       setProjects(response.data.projects);
     } catch (err) {
       console.error('Failed to load projects');
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const response = await authAPI.getAllUsers();
+      setUsers(response.data.users);
+    } catch (err) {
+      console.error('Failed to load users');
     }
   };
 
@@ -131,6 +147,7 @@ const Tasks = () => {
       status: task.status,
       priority: task.priority,
       projectId: task.projectId._id,
+      assignedTo: task.assignedTo?._id || '',
       deadline: task.deadline ? task.deadline.split('T')[0] : '',
     });
     setShowModal(true);
@@ -156,6 +173,7 @@ const Tasks = () => {
       status: 'pending',
       priority: 'medium',
       projectId: '',
+      assignedTo: '',
       deadline: '',
     });
     setShowModal(true);
@@ -170,6 +188,7 @@ const Tasks = () => {
       status: 'pending',
       priority: 'medium',
       projectId: '',
+      assignedTo: '',
       deadline: '',
     });
   };
@@ -471,6 +490,26 @@ const Tasks = () => {
                 </Select>
               </FormGroup>
 
+              {user.role === 'admin' && (
+                <FormGroup>
+                  <Label htmlFor="assignedTo">Assign To</Label>
+                  <Select
+                    id="assignedTo"
+                    name="assignedTo"
+                    value={formData.assignedTo}
+                    onChange={handleChange}
+                    disabled={formLoading}
+                  >
+                    <option value="">Unassigned</option>
+                    {users.map(u => (
+                      <option key={u._id} value={u._id}>
+                        {u.name} ({u.email})
+                      </option>
+                    ))}
+                  </Select>
+                </FormGroup>
+              )}
+
               <FormGroup>
                 <Label htmlFor="deadline">Deadline</Label>
                 <Input
@@ -547,6 +586,12 @@ function TaskCard({
 
       <p className="text-xs text-gray-600 mb-2">{task.projectId?.name}</p>
 
+      {task.assignedTo && (
+        <p className="text-xs text-blue-600 mb-2">
+          Assigned to: {task.assignedTo.name}
+        </p>
+      )}
+
       {task.description && (
         <p className="text-xs text-gray-600 mb-2 line-clamp-2">
           {task.description}
@@ -581,6 +626,11 @@ function TaskCard({
             <div className="flex-1">
               <h4 className="font-medium text-gray-900">{task.title}</h4>
               <p className="text-sm text-gray-600 mt-1">{task.projectId?.name}</p>
+              {task.assignedTo && (
+                <p className="text-sm text-blue-600 mt-1">
+                  Assigned to: {task.assignedTo.name}
+                </p>
+              )}
               {task.description && (
                 <p className="text-sm text-gray-600 mt-1 line-clamp-2">
                   {task.description}
