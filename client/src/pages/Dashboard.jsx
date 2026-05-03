@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { projectAPI, taskAPI } from '../services/api';
+import { authAPI, projectAPI, taskAPI } from '../services/api';
 import { useToast } from '../context/ToastContext';
 import { PageLoadingSpinner } from '../components/LoadingSpinner';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/Card';
@@ -13,11 +13,13 @@ import {
   Zap,
   FolderOpen,
   ArrowRight,
+  Users,
 } from 'lucide-react';
 
 const Dashboard = () => {
   const [projects, setProjects] = useState([]);
   const [tasks, setTasks] = useState([]);
+  const [members, setMembers] = useState([]);
   const [stats, setStats] = useState({
     total: 0,
     pending: 0,
@@ -36,13 +38,22 @@ const Dashboard = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const [projectsRes, tasksRes] = await Promise.all([
-        projectAPI.getUserProjects(),
-        taskAPI.getUserTasks(),
-      ]);
+      const requests = [
+        user.role === 'admin' ? projectAPI.getAllProjects() : projectAPI.getUserProjects(),
+        user.role === 'admin' ? taskAPI.getAllTasks() : taskAPI.getUserTasks(),
+      ];
+
+      if (user.role === 'admin') {
+        requests.push(authAPI.getAllUsers());
+      }
+
+      const [projectsRes, tasksRes, usersRes] = await Promise.all(requests);
 
       setProjects(projectsRes.data.projects);
       setTasks(tasksRes.data.tasks);
+      if (user.role === 'admin') {
+        setMembers(usersRes.data.users.filter(member => member.role === 'member'));
+      }
 
       // Calculate stats
       const totalTasks = tasksRes.data.tasks.length;
@@ -75,6 +86,21 @@ const Dashboard = () => {
 
   const recentTasks = tasks.slice(0, 5);
   const recentProjects = projects.slice(0, 6);
+  const memberTaskSummary = members
+    .map((member) => {
+      const assignedTasks = tasks.filter(task => task.assignedTo?._id === member._id);
+      const completedTasks = assignedTasks.filter(task => task.status === 'completed').length;
+
+      return {
+        ...member,
+        assignedCount: assignedTasks.length,
+        completedCount: completedTasks,
+        activeCount: assignedTasks.length - completedTasks,
+      };
+    })
+    .sort((a, b) => b.assignedCount - a.assignedCount);
+  const assignedMemberCount = memberTaskSummary.filter(member => member.assignedCount > 0).length;
+  const unassignedTasksCount = tasks.filter(task => !task.assignedTo).length;
 
   if (loading) return <PageLoadingSpinner />;
 
@@ -116,6 +142,25 @@ const Dashboard = () => {
     },
   ];
 
+  if (user.role === 'admin') {
+    statCards.push(
+      {
+        icon: Users,
+        label: 'Members With Tasks',
+        value: assignedMemberCount,
+        color: 'text-sky-600',
+        bg: 'bg-sky-50',
+      },
+      {
+        icon: FolderOpen,
+        label: 'Unassigned',
+        value: unassignedTasksCount,
+        color: 'text-slate-600',
+        bg: 'bg-slate-50',
+      }
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -130,7 +175,7 @@ const Dashboard = () => {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+        <div className={`grid grid-cols-1 md:grid-cols-2 ${user.role === 'admin' ? 'lg:grid-cols-7' : 'lg:grid-cols-5'} gap-4 mb-8`}>
           {statCards.map((stat, index) => {
             const Icon = stat.icon;
             return (
@@ -264,6 +309,66 @@ const Dashboard = () => {
                 )}
               </CardContent>
             </Card>
+
+            {user.role === 'admin' && (
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Member Workload</CardTitle>
+                      <CardDescription>
+                        How tasks are distributed across your members
+                      </CardDescription>
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {assignedMemberCount} of {members.length} members assigned
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {memberTaskSummary.length === 0 ? (
+                    <EmptyState
+                      type="tasks"
+                      title="No members yet"
+                      description="Members who sign up will appear here for assignment tracking."
+                    />
+                  ) : (
+                    <div className="space-y-3">
+                      {memberTaskSummary.map(member => (
+                        <div
+                          key={member._id}
+                          className="flex items-center justify-between p-4 rounded-lg border border-gray-200 bg-white"
+                        >
+                          <div>
+                            <p className="font-medium text-gray-900">{member.name}</p>
+                            <p className="text-sm text-gray-500">{member.email}</p>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="text-right">
+                              <p className="text-sm font-semibold text-gray-900">
+                                {member.assignedCount} task{member.assignedCount === 1 ? '' : 's'}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {member.activeCount} active, {member.completedCount} completed
+                              </p>
+                            </div>
+                            <StatusBadge
+                              status={
+                                member.assignedCount === 0
+                                  ? 'pending'
+                                  : member.activeCount > 0
+                                    ? 'in-progress'
+                                    : 'completed'
+                              }
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Right Column */}
