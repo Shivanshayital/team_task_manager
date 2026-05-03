@@ -1,11 +1,4 @@
 {
-  "buildCommand": "npm run setup",
-  "startCommand": "npm start",
-  "healthcheckPath": "/api/health",
-  "healthcheckInterval": 10,
-  "watchPaths": [
-    "package.json",
-    "client/",
-    "server/"
-  ]
+  "startCommand": "npm start"
 }
+

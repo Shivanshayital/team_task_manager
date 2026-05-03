@@ -5,12 +5,7 @@
   "main": "server/server.js",
   "type": "module",
   "scripts": {
-    "start": "sh start.sh",
-    "dev": "cd server && npm run dev",
-    "server:install": "cd server && npm ci",
-    "client:install": "cd client && npm ci",
-    "client:build": "cd client && npm run build",
-    "setup": "npm run server:install && npm run client:install && npm run client:build"
+    "start": "sh start.sh"
   },
   "engines": {
     "node": ">=14.0.0"

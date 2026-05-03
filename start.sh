@@ -2,26 +2,24 @@
 set -e
 
 echo "Preparing application..."
+cd /app
+
+# Install and build client
+echo "Setting up client..."
+cd /app/client
+npm install --omit=dev
+
+echo "Building client..."
+npm run build
 
 # Install server dependencies
 echo "Installing server dependencies..."
 cd /app/server
-npm ci
-
-# Go back to app root and ensure client build exists
-echo "Checking client build..."
-cd /app
-if [ ! -d "client/dist" ]; then
-  echo "Building client..."
-  cd client
-  npm ci
-  npm run build
-  cd /app
-fi
+npm install --omit=dev
 
 # Start the server
 echo "Starting server..."
-cd server
 exec node server.js
+
 
 
