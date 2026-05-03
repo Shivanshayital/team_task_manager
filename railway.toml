@@ -3,4 +3,4 @@ dockerfile = "Dockerfile"
 dockerignorePath = ".dockerignore"
 
 [deploy]
-startCommand = "node server.js"
+startCommand = "sh -c 'if [ -f server/server.js ]; then node server/server.js; else node server.js; fi'"
