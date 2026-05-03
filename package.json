@@ -7,7 +7,6 @@
   "scripts": {
     "start": "cd server && npm start",
     "dev": "cd server && npm run dev",
-    "build": "cd client && npm run build",
     "server:install": "cd server && npm ci",
     "client:install": "cd client && npm ci",
     "client:build": "cd client && npm run build",
