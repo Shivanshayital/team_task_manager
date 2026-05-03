@@ -8,7 +8,10 @@
     "start": "cd server && npm start",
     "dev": "cd server && npm run dev",
     "build": "cd client && npm run build",
-    "setup": "cd server && npm ci && cd ../client && npm ci && npm run build"
+    "server:install": "cd server && npm ci",
+    "client:install": "cd client && npm ci",
+    "client:build": "cd client && npm run build",
+    "setup": "npm run server:install && npm run client:install && npm run client:build"
   },
   "engines": {
     "node": ">=14.0.0"
