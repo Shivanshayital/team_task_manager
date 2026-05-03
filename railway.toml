@@ -1,0 +1,6 @@
+[build]
+dockerfile = "Dockerfile"
+dockerignorePath = ".dockerignore"
+
+[deploy]
+startCommand = "node server/server.js"
