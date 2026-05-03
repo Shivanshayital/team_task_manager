@@ -10,9 +10,6 @@
     "build": "cd client && npm install && npm run build",
     "postinstall": "cd server && npm install"
   },
-  "dependencies": {
-    "mongodb": "^7.2.0"
-  },
   "engines": {
     "node": ">=14.0.0"
   }
