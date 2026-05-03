@@ -3,18 +3,10 @@
   "name": "Team Task Manager",
   "description": "Full-stack project and task management application",
   "version": "1.0.0",
-  "buildCommand": "cd server && npm install && cd ../client && npm install && npm run build",
-  "startCommand": "npm start",
-  "enviromentVariables": {
+  "environmentVariables": {
     "NODE_ENV": "production",
-    "PORT": 5000,
-    "MONGODB_URI": {
-      "description": "MongoDB Atlas connection string",
-      "value": "mongodb+srv://username:password@cluster.mongodb.net/taskmanager"
-    },
-    "JWT_SECRET": {
-      "description": "JWT signing secret (generate with: openssl rand -base64 32)",
-      "value": "your_strong_secret_key_here"
-    }
+    "PORT": "5000",
+    "MONGODB_URI": "mongodb+srv://shivanshnayitall_db_user:Shivansh%400987@cluster0.vfe9xn2.mongodb.net/taskmanager",
+    "JWT_SECRET": "your_strong_secret_key_here"
   }
 }
