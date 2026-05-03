@@ -5,13 +5,12 @@
   "main": "server/server.js",
   "type": "module",
   "scripts": {
-    "start": "sh start.sh",
+    "start": "node server/server.js",
     "build": "npm run build:client && npm run build:server",
-    "build:client": "cd client && npm install --omit=dev && npm run build && cd ..",
-    "build:server": "cd server && npm install --omit=dev && cd ..",
-    "install": "npm run install:client && npm run install:server",
-    "install:client": "cd client && npm install && cd ..",
-    "install:server": "cd server && npm install && cd .."
+    "build:client": "npm --prefix client ci && npm --prefix client run build",
+    "build:server": "npm --prefix server ci --omit=dev",
+    "install:client": "npm --prefix client install",
+    "install:server": "npm --prefix server install"
   },
   "engines": {
     "node": ">=14.0.0",

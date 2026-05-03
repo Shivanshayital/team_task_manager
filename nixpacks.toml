@@ -1,0 +1,14 @@
+[phases.install]
+cmds = [
+  "npm ci",
+  "npm --prefix client ci",
+  "npm --prefix server ci --omit=dev"
+]
+
+[phases.build]
+cmds = [
+  "npm --prefix client run build"
+]
+
+[start]
+cmd = "node server/server.js"
