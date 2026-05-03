@@ -17,9 +17,14 @@ const PORT = process.env.PORT || 5000;
 // Helpers for ES module __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const clientBuildPath = path.join(__dirname, '..', 'client', 'dist');
-const clientIndexPath = path.join(clientBuildPath, 'index.html');
-const hasClientBuild = fs.existsSync(clientIndexPath);
+const clientBuildCandidates = [
+  path.join(__dirname, '..', 'client', 'dist'),
+  path.join(__dirname, 'public')
+];
+const clientBuildPath = clientBuildCandidates.find((candidate) =>
+  fs.existsSync(path.join(candidate, 'index.html'))
+);
+const clientIndexPath = clientBuildPath ? path.join(clientBuildPath, 'index.html') : null;
 
 // Middleware
 app.use(cors());
@@ -34,7 +39,7 @@ app.use('/api/projects', projectRoutes);
 app.use('/api/tasks', taskRoutes);
 
 // Serve frontend in production (single-repo deploy)
-if (process.env.NODE_ENV === 'production' && hasClientBuild) {
+if (process.env.NODE_ENV === 'production' && clientBuildPath) {
   app.use(express.static(clientBuildPath));
 
   // Return index.html for any non-API route so client-side routing works
@@ -43,7 +48,7 @@ if (process.env.NODE_ENV === 'production' && hasClientBuild) {
     res.sendFile(clientIndexPath);
   });
 } else if (process.env.NODE_ENV === 'production') {
-  console.warn(`Frontend build not found at ${clientIndexPath}`);
+  console.warn(`Frontend build not found. Checked: ${clientBuildCandidates.join(', ')}`);
 }
 
 // Health check route
@@ -54,7 +59,7 @@ app.get('/api/health', (req, res) => {
 // 404 handler
 app.use((req, res) => {
   // If production and static served, let client handle routes
-  if (process.env.NODE_ENV === 'production' && hasClientBuild && !req.originalUrl.startsWith('/api')) {
+  if (process.env.NODE_ENV === 'production' && clientIndexPath && !req.originalUrl.startsWith('/api')) {
     return res.sendFile(clientIndexPath);
   }
 
