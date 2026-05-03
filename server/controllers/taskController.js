@@ -1,10 +1,18 @@
 import Task from '../models/Task.js';
 import Project from '../models/Project.js';
 
+const isProjectMember = (project, userId) =>
+  project.members.some((memberId) => memberId.toString() === userId);
+
+const normalizeOptionalObjectId = (value) => (value === '' ? null : value);
+const normalizeOptionalDate = (value) => (value === '' ? null : value);
+
 // Create task (Admin only)
 export const createTask = async (req, res) => {
   try {
-    const { title, description, assignedTo, projectId, deadline, priority } = req.body;
+    const { title, description, projectId, priority } = req.body;
+    const assignedTo = normalizeOptionalObjectId(req.body.assignedTo);
+    const deadline = normalizeOptionalDate(req.body.deadline);
 
     if (!title || !projectId) {
       return res.status(400).json({ message: 'Title and Project ID are required' });
@@ -14,6 +22,10 @@ export const createTask = async (req, res) => {
     const project = await Project.findById(projectId);
     if (!project) {
       return res.status(404).json({ message: 'Project not found' });
+    }
+
+    if (assignedTo && !isProjectMember(project, assignedTo)) {
+      return res.status(400).json({ message: 'Task can only be assigned to a project member' });
     }
 
     const task = new Task({
@@ -112,7 +124,9 @@ export const getTask = async (req, res) => {
 // Update task
 export const updateTask = async (req, res) => {
   try {
-    const { title, description, status, assignedTo, deadline, priority } = req.body;
+    const { title, description, status, priority } = req.body;
+    const assignedTo = normalizeOptionalObjectId(req.body.assignedTo);
+    const deadline = normalizeOptionalDate(req.body.deadline);
     const task = await Task.findById(req.params.id);
 
     if (!task) {
@@ -128,11 +142,22 @@ export const updateTask = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to update this task' });
     }
 
+    if (assignedTo !== undefined) {
+      const project = await Project.findById(task.projectId);
+      if (!project) {
+        return res.status(404).json({ message: 'Project not found' });
+      }
+
+      if (assignedTo && !isProjectMember(project, assignedTo)) {
+        return res.status(400).json({ message: 'Task can only be assigned to a project member' });
+      }
+    }
+
     if (title) task.title = title;
-    if (description) task.description = description;
+    if (description !== undefined) task.description = description;
     if (status) task.status = status;
     if (assignedTo !== undefined) task.assignedTo = assignedTo;
-    if (deadline) task.deadline = deadline;
+    if (deadline !== undefined) task.deadline = deadline;
     if (priority) task.priority = priority;
 
     await task.save();

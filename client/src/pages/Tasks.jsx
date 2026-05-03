@@ -25,7 +25,6 @@ import {
 const Tasks = () => {
   const [tasks, setTasks] = useState([]);
   const [projects, setProjects] = useState([]);
-  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [formLoading, setFormLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -46,9 +45,6 @@ const Tasks = () => {
   useEffect(() => {
     fetchTasks();
     fetchProjects();
-    if (user.role === 'admin') {
-      fetchUsers();
-    }
   }, []);
 
   const fetchTasks = async () => {
@@ -75,18 +71,27 @@ const Tasks = () => {
     }
   };
 
-  const fetchUsers = async () => {
-    try {
-      const response = await authAPI.getAllUsers();
-      setUsers(response.data.users);
-    } catch (err) {
-      console.error('Failed to load users');
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+
+    if (name === 'projectId') {
+      setFormData((prev) => ({
+        ...prev,
+        projectId: value,
+        assignedTo: prev.projectId !== value ? '' : prev.assignedTo,
+      }));
+      return;
     }
+
+    setFormData({ ...formData, [name]: value });
   };
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  const assignableMembers = formData.projectId
+    ? projects.find(project => project._id === formData.projectId)?.members || []
+    : [];
+  const selectedProject = formData.projectId
+    ? projects.find(project => project._id === formData.projectId)
+    : null;
 
   const handleStatusChange = async (taskId, newStatus) => {
     try {
@@ -498,15 +503,30 @@ const Tasks = () => {
                     name="assignedTo"
                     value={formData.assignedTo}
                     onChange={handleChange}
-                    disabled={formLoading}
+                    disabled={formLoading || !formData.projectId || assignableMembers.length === 0}
                   >
-                    <option value="">Unassigned</option>
-                    {users.map(u => (
-                      <option key={u._id} value={u._id}>
-                        {u.name} ({u.email})
+                    <option value="">
+                      {!formData.projectId
+                        ? 'Select a project first'
+                        : assignableMembers.length === 0
+                          ? 'No members in this project'
+                          : 'Unassigned'}
+                    </option>
+                    {assignableMembers.map(member => (
+                      <option key={member._id} value={member._id}>
+                        {member.name} ({member.email})
                       </option>
                     ))}
                   </Select>
+                  <p className="text-xs text-gray-500 mt-2">
+                    {selectedProject
+                      ? `Members in ${selectedProject.name}: ${
+                          assignableMembers.length > 0
+                            ? assignableMembers.map(member => member.name).join(', ')
+                            : 'none yet'
+                        }`
+                      : 'Choose a project to see which members can be assigned this task.'}
+                  </p>
                 </FormGroup>
               )}
 
