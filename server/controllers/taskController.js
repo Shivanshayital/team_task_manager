@@ -1,8 +1,6 @@
 import Task from '../models/Task.js';
 import Project from '../models/Project.js';
-
-const isProjectMember = (project, userId) =>
-  project.members.some((memberId) => memberId.toString() === userId);
+import User from '../models/User.js';
 
 const normalizeOptionalObjectId = (value) => (value === '' ? null : value);
 const normalizeOptionalDate = (value) => (value === '' ? null : value);
@@ -24,8 +22,11 @@ export const createTask = async (req, res) => {
       return res.status(404).json({ message: 'Project not found' });
     }
 
-    if (assignedTo && !isProjectMember(project, assignedTo)) {
-      return res.status(400).json({ message: 'Task can only be assigned to a project member' });
+    if (assignedTo) {
+      const assignee = await User.findById(assignedTo);
+      if (!assignee || assignee.role !== 'member') {
+        return res.status(400).json({ message: 'Task can only be assigned to a valid member' });
+      }
     }
 
     const task = new Task({
@@ -143,13 +144,11 @@ export const updateTask = async (req, res) => {
     }
 
     if (assignedTo !== undefined) {
-      const project = await Project.findById(task.projectId);
-      if (!project) {
-        return res.status(404).json({ message: 'Project not found' });
-      }
-
-      if (assignedTo && !isProjectMember(project, assignedTo)) {
-        return res.status(400).json({ message: 'Task can only be assigned to a project member' });
+      if (assignedTo) {
+        const assignee = await User.findById(assignedTo);
+        if (!assignee || assignee.role !== 'member') {
+          return res.status(400).json({ message: 'Task can only be assigned to a valid member' });
+        }
       }
     }
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { taskAPI, projectAPI } from '../services/api';
+import { authAPI, taskAPI, projectAPI } from '../services/api';
 import { useToast } from '../context/ToastContext';
 import { PageLoadingSpinner } from '../components/LoadingSpinner';
 import { Modal } from '../components/Modal';
@@ -25,6 +25,7 @@ import {
 const Tasks = () => {
   const [tasks, setTasks] = useState([]);
   const [projects, setProjects] = useState([]);
+  const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [formLoading, setFormLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -45,6 +46,9 @@ const Tasks = () => {
   useEffect(() => {
     fetchTasks();
     fetchProjects();
+    if (user.role === 'admin') {
+      fetchMembers();
+    }
   }, []);
 
   const fetchTasks = async () => {
@@ -71,6 +75,15 @@ const Tasks = () => {
     }
   };
 
+  const fetchMembers = async () => {
+    try {
+      const response = await authAPI.getAllUsers();
+      setMembers(response.data.users.filter((member) => member.role === 'member'));
+    } catch (err) {
+      console.error('Failed to load users');
+    }
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -85,13 +98,6 @@ const Tasks = () => {
 
     setFormData({ ...formData, [name]: value });
   };
-
-  const assignableMembers = formData.projectId
-    ? projects.find(project => project._id === formData.projectId)?.members || []
-    : [];
-  const selectedProject = formData.projectId
-    ? projects.find(project => project._id === formData.projectId)
-    : null;
 
   const handleStatusChange = async (taskId, newStatus) => {
     try {
@@ -145,6 +151,9 @@ const Tasks = () => {
   };
 
   const handleEdit = (task) => {
+    if (user.role === 'admin') {
+      fetchMembers();
+    }
     setEditingId(task._id);
     setFormData({
       title: task.title,
@@ -171,6 +180,9 @@ const Tasks = () => {
   };
 
   const handleOpenModal = () => {
+    if (user.role === 'admin') {
+      fetchMembers();
+    }
     setEditingId(null);
     setFormData({
       title: '',
@@ -503,29 +515,21 @@ const Tasks = () => {
                     name="assignedTo"
                     value={formData.assignedTo}
                     onChange={handleChange}
-                    disabled={formLoading || !formData.projectId || assignableMembers.length === 0}
+                    disabled={formLoading || members.length === 0}
                   >
                     <option value="">
-                      {!formData.projectId
-                        ? 'Select a project first'
-                        : assignableMembers.length === 0
-                          ? 'No members in this project'
-                          : 'Unassigned'}
+                      {members.length === 0 ? 'No members available' : 'Unassigned'}
                     </option>
-                    {assignableMembers.map(member => (
+                    {members.map(member => (
                       <option key={member._id} value={member._id}>
                         {member.name} ({member.email})
                       </option>
                     ))}
                   </Select>
                   <p className="text-xs text-gray-500 mt-2">
-                    {selectedProject
-                      ? `Members in ${selectedProject.name}: ${
-                          assignableMembers.length > 0
-                            ? assignableMembers.map(member => member.name).join(', ')
-                            : 'none yet'
-                        }`
-                      : 'Choose a project to see which members can be assigned this task.'}
+                    {members.length > 0
+                      ? `Available members: ${members.map(member => member.name).join(', ')}`
+                      : 'Members will appear here after they sign up with the member role.'}
                   </p>
                 </FormGroup>
               )}
