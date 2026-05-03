@@ -5,7 +5,7 @@
   "main": "server/server.js",
   "type": "module",
   "scripts": {
-    "start": "cd server && npm start",
+    "start": "cd server && npm ci && npm start",
     "dev": "cd server && npm run dev",
     "server:install": "cd server && npm ci",
     "client:install": "cd client && npm ci",
